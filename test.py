@@ -6,6 +6,7 @@ from glob import glob
 from scipy.io import loadmat
 
 import free_space
+import utility as ut
 
 
 class TestFreeSpace(unittest.TestCase):
@@ -29,7 +30,14 @@ class TestFreeSpace(unittest.TestCase):
         fs = free_space.FreeSpace(sample_rate=data['fs'][0, 0].astype('float'))
         y = fs.step(**get_data_dict(data))
         print((y - data['y'][0, 0].astype('complex')) / np.abs(y))
-        np.testing.assert_array_equal(y, data['y'][0, 0].astype('complex'))
+        # np.testing.assert_array_equal(y, data['y'][0, 0].astype('complex'))
+        res = np.abs(
+            [np.real(y - data['y'][0, 0].astype('complex')),
+             np.imag(y - data['y'][0, 0].astype('complex'))] / np.array([np.real(y), np.imag(y)]))
+        res[np.isnan(res)] = 0
+        self.assertLess(
+            np.max(res),
+            1e-9)
 
     def test_step_delay_more1(self):
         """
@@ -43,7 +51,14 @@ class TestFreeSpace(unittest.TestCase):
         fs = free_space.FreeSpace(sample_rate=data['fs'][0, 0].astype('float'))
         y = fs.step(**get_data_dict(data))
         print((y - data['y'][0, 0].astype('complex')) / np.abs(y))
-        np.testing.assert_array_equal(y, data['y'][0, 0].astype('complex'))
+        # np.testing.assert_array_equal(y, data['y'][0, 0].astype('complex'))
+        res = np.abs(
+            [np.real(y - data['y'][0, 0].astype('complex')),
+             np.imag(y - data['y'][0, 0].astype('complex'))] / np.array([np.real(y), np.imag(y)]))
+        res[np.isnan(res)] = 0
+        self.assertLess(
+            np.max(res),
+            1e-9)
 
     def test_step_delay_more1_big_speed(self):
         """
@@ -57,7 +72,14 @@ class TestFreeSpace(unittest.TestCase):
         fs = free_space.FreeSpace(sample_rate=data['fs'][0, 0].astype('float'))
         y = fs.step(**get_data_dict(data))
         print((y - data['y'][0, 0].astype('complex')) / np.abs(y))
-        np.testing.assert_array_equal(y, data['y'][0, 0].astype('complex'))
+        # np.testing.assert_array_equal(y, data['y'][0, 0].astype('complex'))
+        res = np.abs(
+            [np.real(y - data['y'][0, 0].astype('complex')),
+             np.imag(y - data['y'][0, 0].astype('complex'))] / np.array([np.real(y), np.imag(y)]))
+        res[np.isnan(res)] = 0
+        self.assertLess(
+            np.max(res),
+            1e-9)
 
     def test_step_big_speed(self):
         """
@@ -70,8 +92,59 @@ class TestFreeSpace(unittest.TestCase):
 
         fs = free_space.FreeSpace(sample_rate=data['fs'][0, 0].astype('float'))
         y = fs.step(**get_data_dict(data))
-        print(([np.real(y - data['y'][0, 0].astype('complex')), np.imag(y - data['y'][0, 0].astype('complex'))]/np.array([np.real(y), np.imag(y)])))
-        np.testing.assert_array_equal(y, data['y'][0, 0].astype('complex'))
+        res = np.abs(
+                [np.real(y - data['y'][0, 0].astype('complex')),
+                 np.imag(y - data['y'][0, 0].astype('complex'))]/np.array([np.real(y), np.imag(y)]))
+        print(res)
+        res[np.isnan(res)] = 0
+        self.assertLess(
+            np.max(res),
+            1e-9)
+        # p.testing.assert_array_equal(y - data['y'][0, 0].astype('complex'))
+
+    def test_step_two_target(self):
+        """
+
+        :return:
+        """
+        path_to_mat_files = os.path.join(os.path.dirname(__file__), 'test_data')
+        file_path = glob(os.path.join(path_to_mat_files, 'data_3.mat'))[0]
+        data = loadmat(file_path)['data']
+
+        fs = free_space.FreeSpace(sample_rate=data['fs'][0, 0].astype('float'))
+
+        y = fs.step(**get_data_dict(data))
+        res = np.abs(
+                [np.real(y - data['y'][0, 0].astype('complex')),
+                 np.imag(y - data['y'][0, 0].astype('complex'))]/np.array([np.real(y), np.imag(y)]))
+        res[np.isnan(res)] = 0
+        self.assertLess(
+            np.max(res),
+            1e-9)
+
+    def test_step_radar_exapmle(self):
+        """
+
+        :return:
+        """
+        path_to_mat_files = os.path.join(os.path.dirname(__file__), 'test_data')
+        file_path = glob(os.path.join(path_to_mat_files, 'data_example.mat'))[0]
+        data = loadmat(file_path)['data']
+
+        fs = free_space.FreeSpace(sample_rate=data['fs'][0, 0].astype('float'), operating_frequency=data['fop'][0, 0].astype('float'))
+
+        y = fs.step(**get_data_dict(data))
+        res = np.abs(
+            [np.real(y - data['y'][0, 0].astype('complex')),
+             np.imag(y - data['y'][0, 0].astype('complex'))] / np.array([np.real(y), np.imag(y)]))
+        res[np.isnan(res)] = 0
+        print(np.sum(res))
+        print(np.abs(
+            [np.real(y - data['y'][0, 0].astype('complex')),
+             np.imag(y - data['y'][0, 0].astype('complex'))] / np.array([np.real(y), np.imag(y)])))
+        self.assertLess(
+            np.max(res),
+            1e-9)
 
 
     def test_open_mat_file(self):
@@ -99,6 +172,16 @@ class TestFreeSpace(unittest.TestCase):
                      [0.3945 + 0.0277j],
                      [0.3945 + 0.0277j],
                      [0.3945 + 0.0277j]]), decimals=8))
+
+
+class TestUtility(unittest.TestCase):
+    def test_linear_interpolation(self):
+        """ Test init."""
+        test = np.array([[0], [0], [1], [2]])
+        delay = 0.3
+        res = ut.linear_interpolation(test, delay)
+        print(res)
+        np.testing.assert_array_equal(test, res)
 
 def get_data_dict(data):
     """

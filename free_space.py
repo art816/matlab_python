@@ -2,6 +2,8 @@ import scipy
 from scipy import constants
 import numpy as np
 
+import utility as ut
+
 class FreeSpace(object):
     """"""
 
@@ -76,30 +78,31 @@ class FreeSpace(object):
 
         propdelay, propdistance, rspeed = self.compute_propagation_delay_velocity(origin_pos, dist_pos, origin_vel, dist_vel, k)
 
-        sploss = k * fspl(propdistance, _lambda)
+        sploss = k * ut.fspl(propdistance, _lambda)
 
-        plossfactor = np.sqrt(db2pow(sploss))
-
+        plossfactor = np.sqrt(ut.db2pow(sploss))
+        #TODO
         z = np.array(list(range(signal.shape[0]))) / self.sample_rate
-        z = z.reshape(signal.shape[0])
+        z = z.reshape((signal.shape[0], 1)) * np.ones(signal.shape)
 
         y = np.exp(-1j * 2 * np.pi * k * propdistance / _lambda) / \
-            plossfactor * np.exp(1j * 2 * np.pi * k * rspeed /_lambda * (propdelay + z))
+            plossfactor * np.exp(1j * 2 * np.pi * k * rspeed /_lambda * (propdelay + z)) * signal
 
-        yy = np.zeros(signal.shape).astype('complex')
-        for i in range(-1, signal.shape[0] - 1):
-            v = propdelay[0] * self.sample_rate[0, 0] + i
-            vi = np.floor(v).astype('int')
-            vf = v - vi
-            if vi < signal.shape[0] - 1:
-                if vi > -1:
-                    yy[i + 1] = ((1 - vf) * y[vi + 1])
-                    yy[i + 1] += (vf * y[vi])
-                    a = yy[i]
-                elif vi == -1:
-                    yy[i + 1] = (1 - vf) * y[vi + 1]
-            elif vi == signal.shape[0] - 1:
-                yy[i + 1] += (vf * y[vi])
+
+        yy = ut.linear_interpolation(y, propdelay * self.sample_rate[0, 0])
+        # for i in range(-1, signal.shape[0] - 1):
+        #     v = propdelay[0] * self.sample_rate[0, 0] + i
+        #     vi = np.floor(v).astype('int')
+        #     vf = v - vi
+        #     if vi < signal.shape[0] - 1:
+        #         if vi > -1:
+        #             yy[i + 1] = ((1 - vf) * y[vi + 1])
+        #             yy[i + 1] += (vf * y[vi])
+        #             a = yy[i]
+        #         elif vi == -1:
+        #             yy[i + 1] = (1 - vf) * y[vi + 1]
+        #     elif vi == signal.shape[0] - 1:
+        #         yy[i + 1] += (vf * y[vi])
 
 
         return yy
@@ -148,85 +151,7 @@ class FreeSpace(object):
         return rspeed
 
 
-def fspl(R, _lambda):
-    """
-        fspl     Free space path loss
-        L = fspl(R,LAMBDA) returns the free space path loss L (in dB) suffered
-        by a signal with wavelength LAMBDA (in meters) when it is propagated in
-        free space for a distance of R (in meters). R can be a length-M vector
-        and LAMBDA can be a length-N vector. L has the same dimensionality as
-        MxN. Each element in L is the free space path loss for the
-        corresponding propagation distance specified in R.
 
-        Note that the best case is lossless so the loss is always greater than
-        or equal to 0 dB.
-
-        % Example:
-        %   Calculate the free space loss for a signal whose wavelength is 30
-        %   cm. The signal is propagated for 1 km.
-        L = phased.internal.fspl(1000,0.3)
-        See also phased, phased.FreeSpace.
-        Reference
-        [1] John Proakis, Digital Communications, 4th Ed., McGraw-Hill, 2001
-
-    :param R:
-    :param _lambda:
-    :return:
-    """
-    L = 4 * np.pi * R / _lambda
-    if not L.shape:
-        L = np.array([[L]])
-    L = validate_loss(L)
-    L = mag2db(L);
-    return L
-
-
-def validate_loss(L):
-    """
-
-    :param L:
-    :return:
-    """
-    L[L < 1] = 1
-    return L
-
-def mag2db(y):
-    """
-    MAG2DB  Magnitude to dB conversion.
-
-    YDB = MAG2DB(Y) converts magnitude data Y into dB values.
-    Negative values of Y are mapped to NaN.
-
-    See also DB2MAG.
-    Copyright 1986-2011 The MathWorks, Inc.
-
-    :param y:
-    :return:
-    """
-
-    y[y<0] = float('nan')
-    ydb = 20*np.log10(y)
-    return ydb
-
-
-def db2pow(ydB):
-    """
-    DB2POW   dB to Power conversion
-    Y = DB2POW(YDB) converts dB to its corresponding power value such that
-    10*log10(Y)=YDB
-
-    % Example:
-    %   Convert 12dB to Power.
-      y = db2pow(12)
-
-    Copyright 2006 The MathWorks, Inc.
-
-    :param ydB:
-    :return:
-    """
-
-    y = np.power(10, ydB/10);
-    return y
 
 
     # [xbuf_in,nDelay] = ...

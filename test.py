@@ -70,7 +70,7 @@ class TestFreeSpace(unittest.TestCase):
 
         fs = free_space.FreeSpace(sample_rate=data['fs'][0, 0].astype('float'))
         y = fs.step(**get_data_dict(data))
-        print((y - data['y'][0, 0].astype('complex'))/np.abs(y))
+        print(([np.real(y - data['y'][0, 0].astype('complex')), np.imag(y - data['y'][0, 0].astype('complex'))]/np.array([np.real(y), np.imag(y)])))
         np.testing.assert_array_equal(y, data['y'][0, 0].astype('complex'))
 
 

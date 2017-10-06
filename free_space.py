@@ -81,11 +81,28 @@ class FreeSpace(object):
         plossfactor = np.sqrt(db2pow(sploss))
 
         z = np.array(list(range(signal.shape[0]))) / self.sample_rate
-        z = z.reshape((5, 1))
+        z = z.reshape(signal.shape[0])
 
         y = np.exp(-1j * 2 * np.pi * k * propdistance / _lambda) / \
             plossfactor * np.exp(1j * 2 * np.pi * k * rspeed /_lambda * (propdelay + z))
-        return y
+
+        yy = np.zeros(signal.shape).astype('complex')
+        for i in range(-1, signal.shape[0] - 1):
+            v = propdelay[0] * self.sample_rate[0, 0] + i
+            vi = np.floor(v).astype('int')
+            vf = v - vi
+            if vi < signal.shape[0] - 1:
+                if vi > -1:
+                    yy[i + 1] = ((1 - vf) * y[vi + 1])
+                    yy[i + 1] += (vf * y[vi])
+                    a = yy[i]
+                elif vi == -1:
+                    yy[i + 1] = (1 - vf) * y[vi + 1]
+            elif vi == signal.shape[0] - 1:
+                yy[i + 1] += (vf * y[vi])
+
+
+        return yy
 
     def get_range_factor(self):
         """

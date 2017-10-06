@@ -16,27 +16,66 @@ class TestFreeSpace(unittest.TestCase):
         """ Test init."""
         fs = free_space.FreeSpace()
 
-    def test_step(self):
+    def test_step_vel0(self):
         """
 
         :return:
         """
-        data = None
-        y = None
 
         path_to_mat_files = os.path.join(os.path.dirname(__file__), 'test_data')
-        for file_path in glob(os.path.join(path_to_mat_files, 'data_3.mat')):
-            data = loadmat(file_path)['data']
+        file_path = glob(os.path.join(path_to_mat_files, 'data_1.mat'))[0]
+        data = loadmat(file_path)['data']
 
         fs = free_space.FreeSpace(sample_rate=data['fs'][0, 0].astype('float'))
-        y = fs.step(signal=data['signal'][0, 0].astype('float'),
-                    dist_pos=data['dist_pos'][0, 0].astype('float'),
-                    dist_vel=data['dist_vel'][0, 0].astype('float'),
-                    origin_pos=data['origin_pos'][0, 0].astype('float'),
-                    origin_vel=data['origin_vel'][0, 0].astype('float'))
-        np.testing.assert_array_equal(y, data['y'][0, 0].astype('float'))
+        y = fs.step(**get_data_dict(data))
+        print((y - data['y'][0, 0].astype('complex')) / np.abs(y))
+        np.testing.assert_array_equal(y, data['y'][0, 0].astype('complex'))
+
+    def test_step_delay_more1(self):
+        """
+
+        :return:
+        """
+        path_to_mat_files = os.path.join(os.path.dirname(__file__), 'test_data')
+        file_path = glob(os.path.join(path_to_mat_files, 'data_delay_more1.mat'))[0]
+        data = loadmat(file_path)['data']
+
+        fs = free_space.FreeSpace(sample_rate=data['fs'][0, 0].astype('float'))
+        y = fs.step(**get_data_dict(data))
+        print((y - data['y'][0, 0].astype('complex')) / np.abs(y))
+        np.testing.assert_array_equal(y, data['y'][0, 0].astype('complex'))
+
+    def test_step_delay_more1_big_speed(self):
+        """
+
+        :return:
+        """
+        path_to_mat_files = os.path.join(os.path.dirname(__file__), 'test_data')
+        file_path = glob(os.path.join(path_to_mat_files, 'data_delay_more1_big_speed.mat'))[0]
+        data = loadmat(file_path)['data']
+
+        fs = free_space.FreeSpace(sample_rate=data['fs'][0, 0].astype('float'))
+        y = fs.step(**get_data_dict(data))
+        print((y - data['y'][0, 0].astype('complex')) / np.abs(y))
+        np.testing.assert_array_equal(y, data['y'][0, 0].astype('complex'))
+
+    def test_step_big_speed(self):
+        """
+
+        :return:
+        """
+        path_to_mat_files = os.path.join(os.path.dirname(__file__), 'test_data')
+        file_path = glob(os.path.join(path_to_mat_files, 'data_big_speed.mat'))[0]
+        data = loadmat(file_path)['data']
+
+        fs = free_space.FreeSpace(sample_rate=data['fs'][0, 0].astype('float'))
+        y = fs.step(**get_data_dict(data))
+        print((y - data['y'][0, 0].astype('complex'))/np.abs(y))
+        np.testing.assert_array_equal(y, data['y'][0, 0].astype('complex'))
+
 
     def test_open_mat_file(self):
+
         path_to_mat_files = os.path.join(os.path.dirname(__file__), 'test_data')
         for file_path in glob(os.path.join(path_to_mat_files, 'data_1.mat')):
             data = loadmat(file_path)['data']
@@ -61,3 +100,16 @@ class TestFreeSpace(unittest.TestCase):
                      [0.3945 + 0.0277j],
                      [0.3945 + 0.0277j]]), decimals=8))
 
+def get_data_dict(data):
+    """
+
+    :param data:
+    :return:
+    """
+    data_dict = dict(signal = data['signal'][0, 0].astype('float'),
+         dist_pos=data['dist_pos'][0, 0].astype('float'),
+         dist_vel=data['dist_vel'][0, 0].astype('float'),
+         origin_pos=data['origin_pos'][0, 0].astype('float'),
+         origin_vel=data['origin_vel'][0, 0].astype('float'))
+
+    return data_dict

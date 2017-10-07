@@ -21,10 +21,13 @@ def linear_interpolation(data, delay):
         a = result[1:data.shape[0]+1]
         b = result[:data.shape[0]]
         result = (1 - f_delay)*a + f_delay*b
+        # rrr = np.iscomplexobj(data[:, i])
+        # result2 = np.interp(np.array(range(data.shape[0])) - delay[i], range(data.shape[0]), np.real(data[:, i]))
         if full_result is None:
             full_result = result
         else:
             full_result =  np.concatenate((full_result, result), axis=1)
+
     return full_result
 
 def fspl(R, _lambda):

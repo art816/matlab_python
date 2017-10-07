@@ -1,12 +1,14 @@
-
 import os
 import unittest
 import numpy as np
 from glob import glob
 from scipy.io import loadmat
+import warnings
 
 import free_space
 import utility as ut
+
+warnings.filterwarnings('ignore')
 
 
 class TestFreeSpace(unittest.TestCase):

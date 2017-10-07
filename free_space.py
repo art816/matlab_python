@@ -1,6 +1,7 @@
 import scipy
 from scipy import constants
 import numpy as np
+from tqdm import tqdm
 
 import utility as ut
 
@@ -144,9 +145,12 @@ class FreeSpace(object):
 
         tgtdirec = dist_pos - origin_pos
         veldirec = dist_vel - origin_vel
-        rn = np.sqrt(np.sum(np.power(tgtdirec, 2), 0))
+        #Get distance between targets and source
+        # rn = np.sqrt(np.sum(np.power(tgtdirec, 2), 0))
+        rn = np.linalg.norm(tgtdirec, axis=0)
 
-        #negative sign to ensure that incoming relative speed is positive
+        # Negative sign to ensure that incoming relative speed is positive
+        # Vr = (V, R)/|R|
         rspeed = -1 * np.sum((veldirec * tgtdirec) / rn, 0)
         return rspeed
 

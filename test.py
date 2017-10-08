@@ -11,6 +11,8 @@ import utility as ut
 warnings.filterwarnings('ignore')
 
 
+
+
 class TestFreeSpace(unittest.TestCase):
     """
     Test class FreeSpace.
@@ -18,6 +20,28 @@ class TestFreeSpace(unittest.TestCase):
     def test_init(self):
         """ Test init."""
         fs = free_space.FreeSpace()
+
+    def test_all_data(self):
+        """
+
+                :return:
+                """
+
+        path_to_mat_files = os.path.join(os.path.dirname(__file__), 'test_data')
+        for file_path in glob(os.path.join(path_to_mat_files, 'data_*.mat')):
+            data = loadmat(file_path)['data']
+
+            fs = free_space.FreeSpace(**get_data_dict_for_freespace(data))
+            y = fs.step(**get_data_dict(data))
+            print((y - data['y'][0, 0].astype('complex')) / np.abs(y))
+            # np.testing.assert_array_equal(y, data['y'][0, 0].astype('complex'))
+            res = np.abs(
+                [np.real(y - data['y'][0, 0].astype('complex')),
+                 np.imag(y - data['y'][0, 0].astype('complex'))] / np.array([np.real(y), np.imag(y)]))
+            res[np.isnan(res)] = 0
+            self.assertLess(
+                np.max(res),
+                1e-9, msg=file_path)
 
     def test_step_vel0(self):
         """
@@ -29,7 +53,7 @@ class TestFreeSpace(unittest.TestCase):
         file_path = glob(os.path.join(path_to_mat_files, 'data_1.mat'))[0]
         data = loadmat(file_path)['data']
 
-        fs = free_space.FreeSpace(sample_rate=data['fs'][0, 0].astype('float'))
+        fs = free_space.FreeSpace(sample_rate=data['fs'])
         y = fs.step(**get_data_dict(data))
         print((y - data['y'][0, 0].astype('complex')) / np.abs(y))
         # np.testing.assert_array_equal(y, data['y'][0, 0].astype('complex'))
@@ -113,7 +137,7 @@ class TestFreeSpace(unittest.TestCase):
         file_path = glob(os.path.join(path_to_mat_files, 'data_3.mat'))[0]
         data = loadmat(file_path)['data']
 
-        fs = free_space.FreeSpace(sample_rate=data['fs'][0, 0].astype('float'))
+        fs = free_space.FreeSpace(sample_rate=data['fs'])
 
         y = fs.step(**get_data_dict(data))
         res = np.abs(
@@ -191,10 +215,22 @@ def get_data_dict(data):
     :param data:
     :return:
     """
-    data_dict = dict(signal = data['signal'][0, 0].astype('float'),
-         dist_pos=data['dist_pos'][0, 0].astype('float'),
-         dist_vel=data['dist_vel'][0, 0].astype('float'),
-         origin_pos=data['origin_pos'][0, 0].astype('float'),
-         origin_vel=data['origin_vel'][0, 0].astype('float'))
+    data_dict = dict(signal=data['signal'][0, 0],
+                     dist_pos=data['dist_pos'][0, 0],
+                     dist_vel=data['dist_vel'][0, 0],
+                     origin_pos=data['origin_pos'][0, 0],
+                     origin_vel=data['origin_vel'][0, 0])
+
+    return data_dict
+
+
+def get_data_dict_for_freespace(data):
+    """
+
+        :param data:
+        :return:
+        """
+    data_dict = dict(sample_rate=data['fs'][0, 0],
+                     operating_frequency=data['fop'][0, 0])
 
     return data_dict

@@ -35,22 +35,22 @@ class FreeSpace(object):
             The algorithm uses this value to determine the propagation delay in number of samples.
             Default: 1e6
         :param maximum_distance_source: Source of maximum number of samples
-            Default: 'Auto'
+            Default: 'auto'
         :param maximum_distance: Maximum one-way propagation distance
             Default: 10000
         :param maximum_num_input_samples_source: Source of maximum number of samples
-            Default: 'Auto'
+            Default: 'auto'
         :param maximum_num_input_samples: Maximum number of input signal samples
             Default: 100
         """
-        self.propagation_speed = propagation_speed
-        self.operating_frequency = operating_frequency
+        self.propagation_speed = self._get_number(propagation_speed)
+        self.operating_frequency = self._get_number(operating_frequency)
         self.two_way_propagation = two_way_propagation
-        self.sample_rate = sample_rate
+        self.sample_rate = self._get_number(sample_rate)
         self.maximum_distance_source = maximum_distance_source
-        self.maximum_distance = maximum_distance
+        self.maximum_distance = self._get_number(maximum_distance)
         self.maximum_num_input_samples_source = maximum_num_input_samples_source
-        self.maximum_num_input_samples = maximum_num_input_samples
+        self.maximum_num_input_samples = self._get_number(maximum_num_input_samples)
 
     def step(self, signal, origin_pos, dist_pos, origin_vel, dist_vel):
         """
@@ -69,6 +69,11 @@ class FreeSpace(object):
         :return:
             Propagated signal, returned as a M-element complex-valued column vector
         """
+        signal = self._get_complex_array(signal)
+        origin_pos = self._get_float_array(origin_pos)
+        dist_pos = self._get_float_array(dist_pos)
+        origin_vel = self._get_float_array(origin_vel)
+        dist_vel = self._get_float_array(dist_vel)
         _lambda = self.propagation_speed / self.operating_frequency
         return self.compute_multiple_propagated_signal(signal, _lambda, origin_pos, dist_pos, origin_vel, dist_vel)
 
@@ -90,7 +95,7 @@ class FreeSpace(object):
             plossfactor * np.exp(1j * 2 * np.pi * k * rspeed /_lambda * (propdelay + z)) * signal
 
 
-        yy = ut.linear_interpolation(y, propdelay * self.sample_rate[0, 0])
+        yy = ut.linear_interpolation(y, propdelay * self.sample_rate)
         # for i in range(-1, signal.shape[0] - 1):
         #     v = propdelay[0] * self.sample_rate[0, 0] + i
         #     vi = np.floor(v).astype('int')
@@ -154,7 +159,26 @@ class FreeSpace(object):
         rspeed = -1 * np.sum((veldirec * tgtdirec) / rn, 0)
         return rspeed
 
+    def _get_number(self, value_):
+        try:
+            return float(value_)
+        except TypeError as e:
+            raise type(e)(str(e) +
+                      ' happens at %s' % value_)
 
+    def _get_float_array(self, array_):
+        try:
+            return np.array(array_, dtype='float')
+        except TypeError as e:
+            raise type(e)(str(e) +
+                      ' happens at %s' % array_)
+
+    def _get_complex_array(self, array_):
+        try:
+            return np.array(array_, dtype='complex')
+        except TypeError as e:
+            raise type(e)(str(e) +
+                          ' happens at %s' % array_)
 
 
 

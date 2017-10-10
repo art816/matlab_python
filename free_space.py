@@ -237,7 +237,7 @@ class FreeSpace(object):
 
         elif shapes[0] == shapes[2] and shapes[1] == shapes[3]:
             try:
-                if unique_shapes[1][1] == signal.shape[1]:
+                if shapes[1][1] == signal.shape[1]:
                     return True
                 else:
                     raise Exception(("Signal, origin_pos, dist_pos, origin_vel,"

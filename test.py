@@ -29,8 +29,33 @@ class TestFreeSpace(unittest.TestCase):
         path_to_mat_files = os.path.join(os.path.dirname(__file__), 'test_data')
         for file_path in glob(os.path.join(path_to_mat_files, 'data_*.mat')):
             data = loadmat(file_path)['data']
-
+            print(file_path)
             free_space = FreeSpace(**get_data_dict_for_free_space(data))
+            result_signal = free_space.step(**get_data_dict(data))
+            matlab_result_signal = data['y'][0, 0].astype('complex')
+            # np.testing.assert_array_equal(y, matlab_result_signal)
+            res = np.abs(
+                [np.real(result_signal - matlab_result_signal),
+                 np.imag(result_signal - matlab_result_signal)] /
+                np.array([np.real(np.mean([result_signal, matlab_result_signal], axis=0)),
+                          np.imag(np.mean([result_signal, matlab_result_signal], axis=0))]))
+
+            res[np.isnan(res)] = 0
+            self.assertLess(
+                np.max(res),
+                1e-9, msg=(file_path, 'mean_difference=', np.mean(res)))
+
+    def test_all_example_data(self):
+        """ Check results for all data_exmpl_*.mat in test_data.
+            Data create in f-file example.mat.
+        """
+        free_space = None
+        path_to_mat_files = os.path.join(os.path.dirname(__file__), 'test_data')
+        for file_path in sorted(glob(os.path.join(path_to_mat_files, 'data_exmpl_*.mat'))):
+            print(file_path)
+            data = loadmat(file_path)['data']
+            if free_space is None:
+                free_space = FreeSpace(**get_data_dict_for_free_space(data))
             result_signal = free_space.step(**get_data_dict(data))
             matlab_result_signal = data['y'][0, 0].astype('complex')
             # np.testing.assert_array_equal(y, matlab_result_signal)

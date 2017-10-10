@@ -115,6 +115,12 @@ class TestUtility(unittest.TestCase):
     def test_linear_interpolation(self):
         """ Check result for linear_interpolation."""
         test = np.array([[0], [0], [1], [2]])
+        delay = np.array([0])
+        res = ut.linear_interpolation(test, delay)
+        np.testing.assert_array_equal([[0], [0], [1], [2]], res)
+        delay = np.array([1])
+        res = ut.linear_interpolation(test, delay)
+        np.testing.assert_array_equal([[0], [0], [0], [1]], res)
         delay = np.array([0.3])
         res = ut.linear_interpolation(test, delay)
         np.testing.assert_array_equal([[0], [0], [0.7], [1.7]], res)

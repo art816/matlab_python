@@ -13,10 +13,7 @@ def linear_interpolation(data, delay):
     for target_index in range(data.shape[1]):
         int_delay = np.floor(delay[target_index]).astype('int')
         remaind_float_delay = delay[target_index] - int_delay
-        if remaind_float_delay > 0:
-            step = int_delay + 1
-        else:
-            step = int_delay
+        step = int_delay + 1
 
         try:
             result = np.concatenate(
@@ -91,7 +88,6 @@ def mag2db(magnitude):
     :return:
     """
 
-    print(magnitude)
     magnitude[magnitude < 0] = float('nan')
     db_value = 20*np.log10(magnitude)
     return db_value

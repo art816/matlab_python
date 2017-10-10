@@ -200,3 +200,7 @@ def get_data_dict_for_free_space(data):
                      operating_frequency=data['fop'][0, 0])
 
     return data_dict
+
+
+if __name__ == '__main__':
+    unittest.main()

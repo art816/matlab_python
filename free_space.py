@@ -1,9 +1,26 @@
 """ Matlab FreeSpace class"""
 
+import time
 import numpy as np
 from scipy import constants
 
 import utility as ut
+
+
+DEBUG = True
+
+
+def timer(func):
+    """ Timer. """
+    def wrapper(*args, **kw):
+        """ Wrapper. """
+        start_time = time.time()
+        res = func(*args, **kw)
+        if DEBUG is True:
+            print('Время выполнения функции {}: {}'.format(func.__name__,
+                                                           time.time() - start_time))
+        return res
+    return wrapper
 
 
 class FreeSpace(object):
@@ -47,16 +64,21 @@ class FreeSpace(object):
         :param maximum_num_input_samples: Maximum number of input signal samples
             Default: 100
         """
-        self.propagation_speed = self._get_float(propagation_speed)
-        self.operating_frequency = self._get_float(operating_frequency)
+        self.propagation_speed = self._get_float(propagation_speed,
+                                                 'propagation_speed')
+        self.operating_frequency = self._get_float(operating_frequency,
+                                                   'operating_frequency')
         self.two_way_propagation = two_way_propagation
-        self.sample_rate = self._get_float(sample_rate)
+        self.sample_rate = self._get_float(sample_rate, 'sample_rate')
         self.maximum_distance_source = maximum_distance_source
-        self.maximum_distance = self._get_float(maximum_distance)
+        self.maximum_distance = self._get_float(maximum_distance,
+                                                'maximum_distance')
         self.maximum_num_input_samples_source = maximum_num_input_samples_source
-        self.maximum_num_input_samples = self._get_float(maximum_num_input_samples)
+        self.maximum_num_input_samples = self._get_float(maximum_num_input_samples,
+                                                         'maximum_num_input_samples')
         self.lambda_ = self.propagation_speed / self.operating_frequency
 
+    @timer
     def step(self, signal, origin_pos, dist_pos, origin_vel, dist_vel):
         """
         :param signal: M-element complex-valued column vector
@@ -75,13 +97,14 @@ class FreeSpace(object):
         :return:
             Propagated signal, returned as a M-element complex-valued column vector
         """
-        signal = self._get_complex_array(signal)
-        origin_pos = self._get_float_array(origin_pos)
-        dist_pos = self._get_float_array(dist_pos)
-        origin_vel = self._get_float_array(origin_vel)
-        dist_vel = self._get_float_array(dist_vel)
-        return self._compute_multiple_propagated_signal(
-            signal, origin_pos, dist_pos, origin_vel, dist_vel)
+        signal = self._get_complex_array(signal, 'signal')
+        origin_pos = self._get_float_array(origin_pos, 'origin_pos')
+        dist_pos = self._get_float_array(dist_pos, 'dist_pos')
+        origin_vel = self._get_float_array(origin_vel, 'origin_vel')
+        dist_vel = self._get_float_array(dist_vel, 'dist_vel')
+        if self._check_shape(signal, origin_pos, dist_pos, origin_vel, dist_vel):
+            return self._compute_multiple_propagated_signal(
+                signal, origin_pos, dist_pos, origin_vel, dist_vel)
 
     def _compute_multiple_propagated_signal(self, signal, origin_pos,
                                             dist_pos, origin_vel, dist_vel):
@@ -141,7 +164,8 @@ class FreeSpace(object):
 
         return 1
 
-    def _compute_radial_velocity(self, origin_pos, dist_pos, origin_vel, dist_vel):
+    @staticmethod
+    def _compute_radial_velocity(origin_pos, dist_pos, origin_vel, dist_vel):
         """
         Compute radial speed.
         :param origin_pos: Origin of the signal or signals, specified as a 3-by-1
@@ -181,13 +205,7 @@ class FreeSpace(object):
         :param dist_pos:
             Destination of the signal or signals, specified as a 3-by-1.
             Position units are meters
-        :param origin_vel:
-            Velocity of signal origin, specified as a 3-by-1 column vector.
-            Velocity units are meters/second.
-        :param dist_vel:
-            Velocity of signal destinations, specified as a 3-by-1.
-            Velocity units are meters/second.
-        :return: propdelay, prop_distance, rspeed
+        :return: prop_distance
         """
         # prop_distance = np.sqrt(np.sum(np.power(origin_pos - dist_pos, 2), 0))
         # Faster
@@ -197,22 +215,72 @@ class FreeSpace(object):
         return prop_distance
 
     @staticmethod
-    def _get_float(value_):
+    def _check_shape(signal, origin_pos, dist_pos, origin_vel, dist_vel):
+        shapes = [origin_pos.shape,
+                  dist_pos.shape,
+                  origin_vel.shape,
+                  dist_vel.shape]
+        unique_shapes = list(set(shapes))
+        if len(unique_shapes) == 1:
+            try:
+                if unique_shapes[0][1] == signal.shape[1]:
+                    return True
+                else:
+                    raise Exception(("Signal, origin_pos, dist_pos, origin_vel,"
+                                     "dist_vel should have the same second dimension."
+                                     "\n{}").format([signal.shape] + shapes))
+            except IndexError:
+                raise Exception(("Signal, origin_pos, dist_pos, origin_vel,"
+                                 "dist_vel should be a two-dimensional matrix."
+                                 "\n{}").format([signal.shape] + shapes))
+
+        elif shapes[0] == shapes[2] and shapes[1] == shapes[3]:
+            try:
+                if unique_shapes[1][1] == signal.shape[1]:
+                    return True
+                else:
+                    raise Exception(("Signal, origin_pos, dist_pos, origin_vel,"
+                                     "dist_vel should have the same second dimension."
+                                     "\n{}").format([signal.shape] + shapes))
+            except IndexError:
+                raise Exception(("Signal, origin_pos, dist_pos, origin_vel,"
+                                 "dist_vel should be a two-dimensional matrix."
+                                 "\n{}").format([signal.shape] + shapes))
+
+        raise Exception(("Origin_pos, dist_pos, origin_vel, "
+                         "dist_vel haves  different shapes {}").format((shapes)))
+
+    @staticmethod
+    def _get_float(value_, attribute_name):
         try:
             return float(value_)
         except TypeError as except_:
-            raise type(except_)(str(except_) + ' happens at %s' % value_)
+            raise type(except_)(
+                'Error when try set {}.\nMessage: {}'.format(attribute_name,
+                                                             str(except_)))
 
     @staticmethod
-    def _get_float_array(array_):
+    def _get_float_array(array_, attribute_name):
         try:
             return np.array(array_, dtype='float')
         except TypeError as except_:
-            raise type(except_)(str(except_) + ' happens at %s' % array_)
+            raise type(except_)(
+                'Error when try set {}.\nMessage: {}'.format(attribute_name,
+                                                             str(except_)))
+        except ValueError as except_:
+            raise type(except_)(
+                'Error when try set {}.\nMessage: {}'.format(attribute_name,
+                                                             str(except_)))
 
     @staticmethod
-    def _get_complex_array(array_):
+    def _get_complex_array(array_, attribute_name):
         try:
             return np.array(array_, dtype='complex')
         except TypeError as except_:
-            raise type(except_)(str(except_) + ' happens at %s' % array_)
+            raise type(except_)(
+                'Error when try set {}.\nMessage: {}.'.format(attribute_name,
+                                                              str(except_)))
+        except ValueError as except_:
+            raise type(except_)(
+                'Error when try set {}.\nMessage: {}.'.format(attribute_name,
+                                                              str(except_)))

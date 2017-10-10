@@ -1,33 +1,44 @@
+""" Utility."""
+
 import numpy as np
 
 
 def linear_interpolation(data, delay):
-    """ Compute linear interpolation.
+    """ Compute linear interpolation for array.
     :param data: np.array with shape(n, m)
     :param delay: np.array with shape (m,)
     :return:
     """
     full_result = None
-    for i in range(delay.shape[0]):
-        i_delay = np.floor(delay[i]).astype('int')
-        f_delay = delay[i] - i_delay
-        if f_delay > 0:
-            step = i_delay + 1
+    for target_index in range(data.shape[1]):
+        int_delay = np.floor(delay[target_index]).astype('int')
+        remaind_float_delay = delay[target_index] - int_delay
+        if remaind_float_delay > 0:
+            step = int_delay + 1
         else:
-            step = i_delay
-        #zeros = np.zeros((step, data.shape[1]))
-        result = np.concatenate((np.zeros((step, 1)), data[:, i].reshape(data.shape[0], 1)), axis=0)
-        a = result[1:data.shape[0]+1]
-        b = result[:data.shape[0]]
-        result = (1 - f_delay)*a + f_delay*b
-        # rrr = np.iscomplexobj(data[:, i])
-        # result2 = np.interp(np.array(range(data.shape[0])) - delay[i],
-        #                              range(data.shape[0]), np.real(data[:, i]))
+            step = int_delay
+
+        try:
+            result = np.concatenate(
+                (np.zeros((step, 1)),
+                 data[:, target_index].reshape(data.shape[0], 1)),
+                axis=0)
+        # Negative dimensions are not allowed. Delay < 0.
+        except ValueError as except_:
+            raise type(except_)(str(except_) + '\nInteger delay is {}'.format(int_delay))
+
+        # If delay == 0
+        if step == 0:
+            previous_data = result[:data.shape[0]]
+        else:
+            previous_data = result[1:data.shape[0]+1]
+        current_data = result[:data.shape[0]]
+        result = (1 - remaind_float_delay)*previous_data + remaind_float_delay*current_data
+
         if full_result is None:
             full_result = result
         else:
             full_result = np.concatenate((full_result, result), axis=1)
-
     return full_result
 
 
@@ -56,8 +67,6 @@ def fspl(distance, lambda_):
     :return:
     """
     loss = 4 * np.pi * distance / lambda_
-    if not loss.shape:
-        loss = np.array([[loss]])
     loss = validate_loss(loss)
     loss = mag2db(loss)
     return loss
@@ -82,6 +91,7 @@ def mag2db(magnitude):
     :return:
     """
 
+    print(magnitude)
     magnitude[magnitude < 0] = float('nan')
     db_value = 20*np.log10(magnitude)
     return db_value

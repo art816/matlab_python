@@ -1,3 +1,5 @@
+"""Tests for FreeSpace."""
+
 import os
 import unittest
 import warnings
@@ -19,9 +21,10 @@ class TestFreeSpace(unittest.TestCase):
     def test_init(self):
         """ Test init."""
         free_space = FreeSpace()
+        self.assertTrue(free_space)
 
     def test_all_data(self):
-        """
+        """ Check results for all data_*.mat in test_data.
         """
         path_to_mat_files = os.path.join(os.path.dirname(__file__), 'test_data')
         for file_path in glob(os.path.join(path_to_mat_files, 'data_*.mat')):
@@ -40,11 +43,46 @@ class TestFreeSpace(unittest.TestCase):
             res[np.isnan(res)] = 0
             self.assertLess(
                 np.max(res),
-                1e-9, msg=file_path)
+                1e-9, msg=(file_path, 'mean_difference=', np.mean(res)))
 
+    def test_random_initialize(self):
+        """ Check results for all data_*.mat in test_data.
+        """
+        free_space = FreeSpace()
+        signal_shape = (int(1e2), 1)
+        shape = (3, 1)
+        result_signal = free_space.step(signal=np.random.random(signal_shape),
+                                        dist_pos=np.random.randint(0, 1e4, shape),
+                                        dist_vel=np.random.randint(0, 1e4, shape),
+                                        origin_pos=np.random.randint(0, 1e4, shape),
+                                        origin_vel=np.random.randint(0, 1e4, shape))
+        self.assertTrue(result_signal is not None, result_signal.shape)
+
+    def test_long_signal(self):
+        """ Check results for all data_*.mat in test_data.
+        """
+        path_to_mat_files = os.path.join(os.path.dirname(__file__), 'test_data')
+        for file_path in glob(os.path.join(path_to_mat_files, 'data_signal_1e7.mat')):
+            print(file_path)
+            data = loadmat(file_path)['data']
+
+            free_space = FreeSpace(**get_data_dict_for_free_space(data))
+            result_signal = free_space.step(**get_data_dict(data))
+            matlab_result_signal = data['y'][0, 0].astype('complex')
+            # np.testing.assert_array_equal(y, matlab_result_signal)
+            res = np.abs(
+                np.array([np.real(result_signal - matlab_result_signal),
+                          np.imag(result_signal - matlab_result_signal)]) /
+                np.array([np.real(np.mean([result_signal, matlab_result_signal], axis=0)),
+                          np.imag(np.mean([result_signal, matlab_result_signal], axis=0))]))
+
+            res[np.isnan(res)] = 0
+            self.assertLess(
+                np.max(res),
+                1e-9, msg=(np.mean(res)))
 
     def test_open_mat_file(self):
-        """
+        """Test load mat-file.
         """
         path_to_mat_files = os.path.join(os.path.dirname(__file__), 'test_data')
         for file_path in glob(os.path.join(path_to_mat_files, 'data_1.mat')):
@@ -72,14 +110,40 @@ class TestFreeSpace(unittest.TestCase):
 
 
 class TestUtility(unittest.TestCase):
-    """
+    """ Test utilitu.
     """
     def test_linear_interpolation(self):
-        """ Test init."""
+        """ Check result for linear_interpolation."""
         test = np.array([[0], [0], [1], [2]])
         delay = np.array([0.3])
         res = ut.linear_interpolation(test, delay)
-        np.testing.assert_array_equal([[0], [0], [0.7], [1.71324234]], res)
+        np.testing.assert_array_equal([[0], [0], [0.7], [1.7]], res)
+
+    def test_fspl(self):
+        """ Test utility.fspl. """
+        distance = np.array([[1000000]])
+        lambda_ = np.array([[3e8 / 1e3]])
+        self.assertTrue(ut.fspl(distance, lambda_))
+
+    def test_db2pow(self):
+        """ Test utility.db2pow. """
+        self.assertEqual(ut.db2pow(20), 100)
+
+    def test_mag2db(self):
+        """ Test utility.mag2db. """
+        self.assertEqual(
+            ut.mag2db(np.array([[1000]], dtype='float')), 60)
+
+    def test_calc_radial_speed(self):
+        """ Test utility.calc_radial_speed. """
+        origin_pos = np.array([[1]])
+        dist_pos = np.array([[1000]])
+        origin_vel = np.array([[2]])
+        dist_vel = np.array([[2000]])
+        self.assertEqual(
+            ut.calc_radial_speed(
+                origin_pos, dist_pos, origin_vel, dist_vel),
+            -1998)
 
 
 def get_data_dict(data):

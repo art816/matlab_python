@@ -5,6 +5,7 @@ import numpy as np
 
 def linear_interpolation(data, delay):
     """ Compute linear interpolation for array.
+        Compute by columns. Finish concatenate columns.
     :param data: np.array with shape(n, m)
     :param delay: np.array with shape (m,)
     :return:
@@ -59,8 +60,8 @@ def fspl(distance, lambda_):
         Reference
         [1] John Proakis, Digital Communications, 4th Ed., McGraw-Hill, 2001
 
-    :param distance:
-    :param lambda_:
+    :param distance: numpy.array
+    :param lambda_: numpy.array
     :return:
     """
     loss = 4 * np.pi * distance / lambda_
@@ -71,7 +72,7 @@ def fspl(distance, lambda_):
 
 def validate_loss(loss):
     """ Change value < 1 to 1.
-    :param loss:
+    :param loss: numpy.array
     :return:
     """
     loss[loss < 1] = 1
@@ -84,7 +85,7 @@ def mag2db(magnitude):
         Negative values of Y are mapped to NaN.
         See also DB2MAG.
         Copyright 1986-2011 The MathWorks, Inc.
-    :param magnitude:
+    :param magnitude: numpy.array
     :return:
     """
 
@@ -102,7 +103,7 @@ def db2pow(db_value):
         Convert 12dB to Power.
           power = db2pow(12)
         Copyright 2006 The MathWorks, Inc.
-    :param db_value:
+    :param db_value: numpy.array
     :return:
     """
     power = np.power(10, db_value / 10)
@@ -121,10 +122,10 @@ def calc_radial_speed(origin_pos, dist_pos, origin_vel, dist_vel):
        and velocity are always column vectors and the target and reference can
        never be colocated, so it simplifies the computation too.
 
-    :param origin_pos:
-    :param dist_pos:
-    :param origin_vel:
-    :param dist_vel:
+    :param origin_pos: numpy.array
+    :param dist_pos: numpy.array
+    :param origin_vel: numpy.array
+    :param dist_vel: numpy.array
     :return:
     """
 

@@ -86,13 +86,13 @@ class FreeSpace(object):
             real-valued column vector.
             Position units are meters.
         :param dist_pos:
-            Destination of the signal or signals, specified as a 3-by-1.
+            Destination of the signal or signals, specified as a 3-by-N.
             Position units are meters
         :param origin_vel:
             Velocity of signal origin, specified as a 3-by-1 column vector.
             Velocity units are meters/second.
         :param dist_vel:
-            Velocity of signal destinations, specified as a 3-by-1.
+            Velocity of signal destinations, specified as a 3-by-N.
             Velocity units are meters/second.
         :return:
             Propagated signal, returned as a M-element complex-valued column vector
@@ -110,18 +110,18 @@ class FreeSpace(object):
                                             dist_pos, origin_vel, dist_vel):
         """
         Compute propdelay, propdistance, rspeed.
-        :param signal: M-element complex-valued column vector
+        :param signal: M-by-N element complex-valued column vector
         :param origin_pos: Origin of the signal or signals, specified as a 3-by-1
             real-valued column vector.
             Position units are meters.
         :param dist_pos:
-            Destination of the signal or signals, specified as a 3-by-1.
+            Destination of the signal or signals, specified as a 3-by-N.
             Position units are meters
         :param origin_vel:
-            Velocity of signal origin, specified as a 3-by-1 column vector.
+            Velocity of signal origin, specified as a 3-by-N column vector.
             Velocity units are meters/second.
         :param dist_vel:
-            Velocity of signal destinations, specified as a 3-by-1.
+            Velocity of signal destinations, specified as a 3-by-N.
             Velocity units are meters/second.
         :return:
         """
@@ -172,13 +172,13 @@ class FreeSpace(object):
             real-valued column vector.
             Position units are meters.
         :param dist_pos:
-            Destination of the signal or signals, specified as a 3-by-1.
+            Destination of the signal or signals, specified as a 3-by-N.
             Position units are meters
         :param origin_vel:
             Velocity of signal origin, specified as a 3-by-1 column vector.
             Velocity units are meters/second.
         :param dist_vel:
-            Velocity of signal destinations, specified as a 3-by-1.
+            Velocity of signal destinations, specified as a 3-by-N.
             Velocity units are meters/second.
         :return: rspeed
         """
@@ -203,7 +203,7 @@ class FreeSpace(object):
             real-valued column vector.
             Position units are meters.
         :param dist_pos:
-            Destination of the signal or signals, specified as a 3-by-1.
+            Destination of the signal or signals, specified as a 3-by-N.
             Position units are meters
         :return: prop_distance
         """
@@ -216,6 +216,7 @@ class FreeSpace(object):
 
     @staticmethod
     def _check_shape(signal, origin_pos, dist_pos, origin_vel, dist_vel):
+        """"Check data shapes."""
         shapes = [origin_pos.shape,
                   dist_pos.shape,
                   origin_vel.shape,

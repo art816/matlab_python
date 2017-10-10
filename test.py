@@ -74,7 +74,7 @@ class TestFreeSpace(unittest.TestCase):
         """ Check results for all data_*.mat in test_data.
         """
         free_space = FreeSpace()
-        signal_shape = (int(1e2), 1)
+        signal_shape = (int(1e7), 1)
         shape = (3, 1)
         result_signal = free_space.step(signal=np.random.random(signal_shape),
                                         dist_pos=np.random.randint(0, 1e4, shape),

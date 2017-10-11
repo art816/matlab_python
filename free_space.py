@@ -77,6 +77,7 @@ class FreeSpace(object):
         self.maximum_num_input_samples = self._get_float(maximum_num_input_samples,
                                                          'maximum_num_input_samples')
         self.lambda_ = self.propagation_speed / self.operating_frequency
+        self._buffer = None
 
     @timer
     def step(self, signal, origin_pos, dist_pos, origin_vel, dist_vel):
@@ -105,6 +106,37 @@ class FreeSpace(object):
         if self._check_shape(signal, origin_pos, dist_pos, origin_vel, dist_vel):
             return self._compute_multiple_propagated_signal(
                 signal, origin_pos, dist_pos, origin_vel, dist_vel)
+
+    def _push_buffer(self, signal):
+        """
+
+        :param signal:
+        :return:
+        """
+        if self._buffer is None:
+            self._buffer = signal
+        else:
+            self._buffer = np.concatenate((self._buffer, signal), axis=0)
+
+    def _pull_buffer(self, count, shape):
+        """
+
+        :param count:
+        :return:
+        """
+        if self._buffer is None:
+            return np.zeros((count, shape[1]))
+
+        if count == 0:
+            return np.zeros((0, shape[1]))
+
+        buffered = self._buffer[-count:, :]
+        if buffered.shape[0] < count:
+            buffered =  np.concatenate(
+                (np.zeros((count - buffered.shape[0], buffered.shape[1])),
+                buffered), axis=0)
+        return buffered
+
 
     def _compute_multiple_propagated_signal(self, signal, origin_pos,
                                             dist_pos, origin_vel, dist_vel):
@@ -138,7 +170,10 @@ class FreeSpace(object):
         plossfactor = np.sqrt(ut.db2pow(sploss))
 
         #Get time step matrix for all targets.
-        time_step = np.array(list(range(signal.shape[0]))) / self.sample_rate
+        takts = 0
+        if self._buffer is not None:
+            takts = self._buffer.shape[0]
+        time_step = np.array(list(range(takts, takts + signal.shape[0]))) / self.sample_rate
         time_step = time_step.reshape((signal.shape[0], 1)) * np.ones(signal.shape)
 
         #Get result signal values without delay.
@@ -148,9 +183,21 @@ class FreeSpace(object):
             ) * np.exp(
                 -1j * 2 * np.pi * two_way_factor * prop_distance / self.lambda_)
 
+        sample_delay = prop_delay * self.sample_rate
+        buffered_signal = self._pull_buffer(np.max(np.ceil(sample_delay)), signal.shape)
+
+        time_step = (np.array(list(range(takts - buffered_signal.shape[0], takts))) + 0) / self.sample_rate
+        time_step = time_step.reshape((buffered_signal.shape[0], 1)) * np.ones(buffered_signal.shape)
+        buffered_signal = buffered_signal / plossfactor * np.exp(
+            1j * 2 * np.pi * two_way_factor * rspeed / self.lambda_ * (
+                prop_delay + time_step)
+        ) * np.exp(
+            -1j * 2 * np.pi * two_way_factor * prop_distance / self.lambda_)
+
         #Compute signal values with delay. Use linear interpolation.
         result_signal_with_delay = ut.linear_interpolation(
-            result_signal, prop_delay * self.sample_rate)
+            result_signal, sample_delay, buffered_signal)
+        self._push_buffer(signal)
 
         return result_signal_with_delay
 

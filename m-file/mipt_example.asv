@@ -1,0 +1,50 @@
+clear();
+ 
+sample_rate = 8e3;
+two_way_propagation = true;
+freespace = phased.FreeSpace(...
+    'SampleRate', sample_rate,...
+    'TwoWayPropagation', two_way_propagation);
+ 
+in_signal = reshape(ones(20, 1), 20, 1)*10^12;
+ 
+origin_pos = [900000; 0; 0];
+dest_pos = [300; 200; 50];
+origin_vel = [-20; -20; -20];
+dest_vel = [100; 100; 100];
+ 
+% Here we radiate 3 signals one after another, without any time interval between them.
+% The signals should be shifted, and the end of first signal should go to
+% the beginning of the second signal.
+ 
+disp('RADIATING FIRST (ONES)');
+first_signal = freespace.step(in_signal, origin_pos, dest_pos, origin_vel, dest_vel);
+data = struct('fs', sample_in, ...
+        'signal', txsig, ...
+        'origin_pos', sensorpos, ...
+        'origin_vel', sensorvel, ...
+        'dist_pos', tgtpos, ...
+        'dist_vel', tgtvel, ...
+        'y', txsig_res)
+    disp(strcat('D:\Python project\matlab_python\test_data\data_exmpl_',...
+            num2str(m),...
+            '.mat'))
+    save(strcat('D:\Python project\matlab_python\test_data\data_exmpl_',...
+            num2str(m),...
+            '.mat'), 'data')
+        
+disp('RADIATING SECOND (ZEROS)');
+second_signal = freespace.step(zeros(size(in_signal)), origin_pos, dest_pos, origin_vel, dest_vel);
+ 
+disp('RADIATING THIRD (ZEROS)');
+third_signal = freespace.step(zeros(size(in_signal)), origin_pos, dest_pos, origin_vel, dest_vel);
+ 
+disp('RADIATING FOURTH (ZEROS)');
+fourth_signal = freespace.step(zeros(size(in_signal)), origin_pos, dest_pos, origin_vel, dest_vel);
+ 
+plot(abs(third_signal));
+pause;
+plot(abs(fourth_signal));
+ 
+cd(fileparts(mfilename('fullpath')));
+save(strcat(mfilename(), '.mat'))

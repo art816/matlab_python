@@ -23,6 +23,22 @@ class TestFreeSpace(unittest.TestCase):
         free_space = FreeSpace()
         self.assertTrue(free_space)
 
+    def test_pull(self):
+        """ Test init."""
+        free_space = FreeSpace()
+        print(free_space._pull_buffer(5, (3, 2)))
+        # self.assertTrue(free_space._pull_buffer(3, (3,1)))
+
+    def test_push(self):
+        """ Test init."""
+        free_space = FreeSpace()
+        a = np.ones((2, 2))
+        free_space._push_buffer(a)
+        b = free_space._pull_buffer(3, (3, 2))
+        np.testing.assert_array_equal(
+            np.concatenate((np.zeros((1, 2)), a), axis=0),
+            b)
+
     def test_all_data(self):
         """ Check results for all data_*.mat in test_data.
         """
@@ -45,20 +61,22 @@ class TestFreeSpace(unittest.TestCase):
                 np.max(res),
                 1e-9, msg=(file_path, 'mean_difference=', np.mean(res)))
 
-    def test_all_example_data(self):
+    def test_all_mipt_example_data(self):
         """ Check results for all data_exmpl_*.mat in test_data.
             Data create in f-file example.mat.
         """
         free_space = None
         path_to_mat_files = os.path.join(os.path.dirname(__file__), 'test_data')
-        for file_path in sorted(glob(os.path.join(path_to_mat_files, 'data_exmpl_*.mat'))):
+        for file_path in sorted(glob(os.path.join(path_to_mat_files, 'data_mipt_exmpl*.mat'))):
             print(file_path)
             data = loadmat(file_path)['data']
             if free_space is None:
-                free_space = FreeSpace(**get_data_dict_for_free_space(data))
+                free_space = FreeSpace(**get_data_dict_for_free_space(data), two_way_propagation=True)
+            data = loadmat(file_path)['data']
             result_signal = free_space.step(**get_data_dict(data))
             matlab_result_signal = data['y'][0, 0].astype('complex')
             # np.testing.assert_array_equal(y, matlab_result_signal)
+            print(np.abs(result_signal - matlab_result_signal))
             res = np.abs(
                 [np.real(result_signal - matlab_result_signal),
                  np.imag(result_signal - matlab_result_signal)] /
@@ -141,13 +159,13 @@ class TestUtility(unittest.TestCase):
         """ Check result for linear_interpolation."""
         test = np.array([[0], [0], [1], [2]])
         delay = np.array([0])
-        res = ut.linear_interpolation(test, delay)
+        res = ut.linear_interpolation(test, delay, np.zeros((1, 1)))
         np.testing.assert_array_equal([[0], [0], [1], [2]], res)
         delay = np.array([1])
-        res = ut.linear_interpolation(test, delay)
+        res = ut.linear_interpolation(test, delay, np.zeros((2, 1)))
         np.testing.assert_array_equal([[0], [0], [0], [1]], res)
         delay = np.array([0.3])
-        res = ut.linear_interpolation(test, delay)
+        res = ut.linear_interpolation(test, delay, np.zeros((1, 1)))
         np.testing.assert_array_equal([[0], [0], [0.7], [1.7]], res)
 
     def test_fspl(self):

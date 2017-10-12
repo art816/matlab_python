@@ -118,30 +118,32 @@ class FreeSpace(object):
         else:
             self._buffer = np.concatenate((self._buffer, signal), axis=0)
 
-    def _pull_buffer(self, count, shape):
+    def _pull_buffer(self, number_of_rows, shape):
         """
-
-        :param count:
-        :return:
+        Return count last row from buffer.
+        :param number_of_rows: N last row.
+        :param shape: shape ndarray.
+        :return: ndarray with shape == (number_of_rows, shape[1]) from self._buffer
         """
         if self._buffer is None:
-            return np.zeros((count, shape[1]))
+            return np.zeros((number_of_rows, shape[1]))
 
-        if count == 0:
+        if number_of_rows == 0:
             return np.zeros((0, shape[1]))
 
-        buffered = self._buffer[-count:, :]
-        if buffered.shape[0] < count:
-            buffered =  np.concatenate(
-                (np.zeros((count - buffered.shape[0], buffered.shape[1])),
-                buffered), axis=0)
+        # Get number_of_rows last row, Add zeros if need
+        buffered = self._buffer[-number_of_rows:, :]
+        if buffered.shape[0] < number_of_rows:
+            buffered = np.concatenate(
+                (np.zeros((number_of_rows - buffered.shape[0], buffered.shape[1])),
+                 buffered), axis=0)
         return buffered
 
 
     def _compute_multiple_propagated_signal(self, signal, origin_pos,
                                             dist_pos, origin_vel, dist_vel):
         """
-        Compute propdelay, propdistance, rspeed.
+        Compute multiple_propagated_signal.
         :param signal: M-by-N element complex-valued column vector
         :param origin_pos: Origin of the signal or signals, specified as a 3-by-1
             real-valued column vector.
@@ -170,37 +172,69 @@ class FreeSpace(object):
         plossfactor = np.sqrt(ut.db2pow(sploss))
 
         #Get time step matrix for all targets.
-        takts = 0
-        if self._buffer is not None:
-            takts = self._buffer.shape[0]
-        time_step = np.array(list(range(takts, takts + signal.shape[0]))) / self.sample_rate
-        time_step = time_step.reshape((signal.shape[0], 1)) * np.ones(signal.shape)
+        time_step = self._get_time_step(signal.shape)
 
-        #Get result signal values without delay.
-        result_signal = signal / plossfactor * np.exp(
-            1j * 2 * np.pi * two_way_factor * rspeed / self.lambda_ * (
-                prop_delay + time_step)
-            ) * np.exp(
-                -1j * 2 * np.pi * two_way_factor * prop_distance / self.lambda_)
+        # Get result signal values without delay.
+        result_signal = self._compute_signal(signal, plossfactor, rspeed,
+                                             prop_distance, prop_delay, time_step)
 
         sample_delay = prop_delay * self.sample_rate
+        # Get old signal from buffer.
+        # Need add 1 for integer sample_delay value.
         buffered_signal = self._pull_buffer(np.max(np.floor(sample_delay)).astype('int') + 1,
                                             signal.shape)
 
-        time_step = (np.array(list(range(takts - buffered_signal.shape[0], takts))) + 0) / self.sample_rate
-        time_step = time_step.reshape((buffered_signal.shape[0], 1)) * np.ones(buffered_signal.shape)
-        buffered_signal = buffered_signal / plossfactor * np.exp(
+        buffer_time_step = self._get_time_step(buffered_signal.shape, for_buffer=True)
+        result_buffered_signal = self._compute_signal(buffered_signal, plossfactor, rspeed,
+                                                      prop_distance, prop_delay, buffer_time_step)
+
+        # Compute signal values with delay. Use linear interpolation.
+        result_signal_after_interpolation = ut.linear_interpolation(
+            result_signal, sample_delay, result_buffered_signal)
+
+        # Push signal to buffer.
+        self._push_buffer(signal)
+
+        return result_signal_after_interpolation
+
+    def _compute_signal(self, signal, plossfactor, rspeed, prop_distance,
+                        prop_delay, time_step):
+        """
+        Compute result signal.
+        :param signal: ndarray
+        :param two_way_factor: {1 or 2}
+        :param plossfactor: ndarray
+        :param rspeed: ndarray
+        :param prop_distance: ndarray
+        :param prop_delay: ndarray
+        :return:
+        """
+        two_way_factor = self._get_range_factor()
+        result_signal = signal / plossfactor * np.exp(
             1j * 2 * np.pi * two_way_factor * rspeed / self.lambda_ * (
                 prop_delay + time_step)
         ) * np.exp(
             -1j * 2 * np.pi * two_way_factor * prop_distance / self.lambda_)
+        return result_signal
 
-        #Compute signal values with delay. Use linear interpolation.
-        result_signal_with_delay = ut.linear_interpolation(
-            result_signal, sample_delay, buffered_signal)
-        self._push_buffer(signal)
+    def _get_time_step(self, shape, for_buffer=False):
+        """ Get time step matrix for all targets.
+            If 'for_buffer' is True, return time step matrix for old values.
+        :param shape: signal shape.
+        :return:
+        """
+        current_taсt = 0
+        if self._buffer is not None:
+            current_taсt = self._buffer.shape[0]
 
-        return result_signal_with_delay
+        if for_buffer:
+            time_step = np.arange(current_taсt - shape[0],
+                                  current_taсt) / self.sample_rate
+        else:
+            time_step = np.arange(current_taсt,
+                                  current_taсt + shape[0]) / self.sample_rate
+        time_step = time_step.reshape((shape[0], 1)) * np.ones(shape)
+        return time_step
 
     def _get_range_factor(self):
         """

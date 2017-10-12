@@ -33,12 +33,12 @@ class TestFreeSpace(unittest.TestCase):
     def test_push(self):
         """ Test init."""
         free_space = FreeSpace()
-        a = np.ones((2, 2))
-        free_space._push_buffer(a)
-        b = free_space._pull_buffer(3, (3, 2))
+        test_array = np.ones((2, 2))
+        free_space._push_buffer(test_array)
+        buffer_result = free_space._pull_buffer(3, (3, 2))
         np.testing.assert_array_equal(
-            np.concatenate((np.zeros((1, 2)), a), axis=0),
-            b)
+            np.concatenate((np.zeros((1, 2)), test_array), axis=0),
+            buffer_result)
 
     def test_all_data(self):
         """ Check results for all data_*.mat in test_data.
@@ -148,7 +148,7 @@ class TestFreeSpace(unittest.TestCase):
             res[np.isnan(res)] = 0
             self.assertLess(
                 np.max(res),
-                1e-9, msg=(np.mean(res)))
+                1e-9, msg=(file_path, 'mean_difference=', np.mean(res)))
 
     def test_open_mat_file(self):
         """Test load mat-file.

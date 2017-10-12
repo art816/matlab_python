@@ -8,6 +8,7 @@ def linear_interpolation(data, delay, buffer):
         Compute by columns. Finish concatenate columns.
     :param data: np.array with shape(n, m)
     :param delay: np.array with shape (m,)
+    :param buffer: np.array use as left buffer for interpolation.
     :return:
     """
     full_result = None
@@ -17,8 +18,6 @@ def linear_interpolation(data, delay, buffer):
         step = int_delay + 1
 
         try:
-            aaa = buffer[:, target_index].reshape(buffer.shape[0], 1)
-            bbb = data[:, target_index].reshape(data.shape[0], 1)
             result = np.concatenate(
                 (buffer[:, target_index].reshape(buffer.shape[0], 1),
                  data[:, target_index].reshape(data.shape[0], 1)),
@@ -27,12 +26,11 @@ def linear_interpolation(data, delay, buffer):
         except ValueError as except_:
             raise type(except_)(str(except_) + '\nInteger delay is {}'.format(int_delay))
 
-        # If delay == 0
-        if step == 0:
-            previous_data = result[buffer.shape[0] - step: data.shape[0] + buffer.shape[0] - step]
-        else:
-            previous_data = result[buffer.shape[0] - step + 1: data.shape[0]+ buffer.shape[0] - step + 1]
-        current_data = result[buffer.shape[0] - step: data.shape[0] + buffer.shape[0] - step]
+        # For multi target need use different slice.
+        # Buffer haves signals for max(delay)
+        slice_index = buffer.shape[0] - step
+        previous_data = result[slice_index + 1: data.shape[0] + slice_index + 1]
+        current_data = result[slice_index: data.shape[0] + slice_index]
         result = (1 - remaind_float_delay)*previous_data + remaind_float_delay*current_data
 
         if full_result is None:

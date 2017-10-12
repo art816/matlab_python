@@ -184,7 +184,8 @@ class FreeSpace(object):
                 -1j * 2 * np.pi * two_way_factor * prop_distance / self.lambda_)
 
         sample_delay = prop_delay * self.sample_rate
-        buffered_signal = self._pull_buffer(np.max(np.ceil(sample_delay)), signal.shape)
+        buffered_signal = self._pull_buffer(np.max(np.floor(sample_delay)).astype('int') + 1,
+                                            signal.shape)
 
         time_step = (np.array(list(range(takts - buffered_signal.shape[0], takts))) + 0) / self.sample_rate
         time_step = time_step.reshape((buffered_signal.shape[0], 1)) * np.ones(buffered_signal.shape)
